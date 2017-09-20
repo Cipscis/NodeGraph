@@ -262,9 +262,19 @@ define(
 					let coordsB = module.coords[link.nodeB.name];
 
 					let line = new Line(coordsA, coordsB.subtract(coordsA));
+					let point = line.getClosestPoint(pos);
 
-					if (line.getDistanceToLine(pos) < mouseThreshold) {
-						module.selectedLinks.push(link);
+					if (pos.subtract(point).mod() < mouseThreshold) {
+						// Close to line
+						let linkDist = point.subtract(coordsA);
+						let linkLength = coordsB.subtract(coordsA).mod();
+
+						let lineProportion = (linkDist.x / line.direction.x) / linkLength;
+
+						if (lineProportion > 0 && lineProportion < 1) {
+							// Close to line segment
+							module.selectedLinks.push(link);
+						}
 					}
 				}
 			},
