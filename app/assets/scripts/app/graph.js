@@ -68,11 +68,9 @@ define(
 			removeNode: function (node) {
 				var i, link;
 
-				console.log('Remove', node);
 				for (i = 0; i < node.links.length; i++) {
 					link = node.links[i];
 
-					console.log(link, link.getOtherNode(node));
 					node.unlink(link.getOtherNode(node));
 				}
 

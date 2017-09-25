@@ -60,7 +60,8 @@ define(
 				}
 			}
 
-			console.warn('Graph.prototype.getNodeById found no node with id ', id);
+			// Didn't find a node
+			return undefined;
 		};
 
 		Graph.prototype.getPath = function (nodeA, nodeB) {
@@ -168,6 +169,7 @@ define(
 			var i, node;
 			var j, savedLink;
 			var linkedNode;
+			var anchor;
 
 			if (typeof savedGraph === 'string') {
 				savedGraph = JSON.parse(savedGraph);
@@ -177,13 +179,22 @@ define(
 			Graph.call(this, savedGraph[0]);
 
 			// Add nodes sequentially
-			// Because of how the node tree is traversed, each node's
-			// first linked node should be loaded before it and therefore
+			// Because of how the node tree is traversed, each node should
+			// have one linked node loaded before it and therefore
 			// available as an anchor to attach it to the graph
 			for (i = 1; i < savedGraph.length; i++) {
 				savedNode = savedGraph[i];
 
-				this.addNode(savedNode, this.getNodeById(savedNode.links[0].id));
+				for (j = 0; j < savedNode.links.length; j++) {
+					anchor = savedNode.links[j].id;
+					anchor = this.getNodeById(anchor);
+
+					if (anchor) {
+						break;
+					}
+				}
+
+				this.addNode(savedNode, anchor);
 			}
 
 			// Loop through nodes again and add any missing links
