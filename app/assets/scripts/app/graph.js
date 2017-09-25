@@ -17,8 +17,8 @@ define(
 
 		var module = {
 			init: function () {
-				module.canvas = document.getElementById('graph-canvas');
-				module.ctx = module.canvas.getContext('2d');
+				var canvas = document.getElementById('graph-canvas');
+				module.ctx = canvas.getContext('2d');
 
 				module.initGraph(5);
 
@@ -37,27 +37,28 @@ define(
 					name: 'Root'
 				});
 				module.nodes = [module.graph.getRoot()];
-				module.coords = {};
-				module.coords[module.nodes[0].name] = new Vector(module.canvas.width/2, module.canvas.height/2);
+				module.nodes[0].coords = new Vector(module.ctx.canvas.width/2, module.ctx.canvas.height/2);
 
 				for (let i = 1; i < n; i++) {
 					// Add a new node, linked to a random other node
 					anchor = module.nodes[Math.floor(Math.random()*module.nodes.length)];
-					module.addNode(anchor, {name: i});
+					module.addNode({r: r}, anchor);
 				}
 			},
 
-			addNode: function (anchor, options, x, y) {
-				if (typeof x === 'undefined') {
-					x = Math.random()*(module.canvas.width - borderThreshold*2) + borderThreshold;
-				}
-				if (typeof y === 'undefined') {
-					y = Math.random()*(module.canvas.height - borderThreshold*2) + borderThreshold;
+			addNode: function (options, anchor) {
+				options = options || {};
+
+				if (typeof options.x === 'undefined') {
+					options.x = Math.random()*(module.ctx.canvas.width - borderThreshold*2) + borderThreshold;
 				}
 
-				var node = module.graph.addNode(anchor, options);
+				if (typeof options.y === 'undefined') {
+					options.y = Math.random()*(module.ctx.canvas.height - borderThreshold*2) + borderThreshold;
+				}
+
+				var node = module.graph.addNode(options, anchor);
 				module.nodes.push(node);
-				module.coords[node.name] = new Vector(x, y);
 
 				return node;
 			},
@@ -81,7 +82,7 @@ define(
 
 						if (link) {
 							// Calculate link lengths, then look at "forces" based on if they're longer or shorter than the ideal length. Those forces then move the nodes
-							let linkVector = module.coords[otherNode.name].subtract(module.coords[node.name]);
+							let linkVector = otherNode.coords.subtract(node.coords);
 
 							let forceScale = Math.pow(linkVector.mod() - idealLinkLength, 2) * 0.1;
 							let linkForce = linkVector.normalise().scale(forceScale);
@@ -94,7 +95,7 @@ define(
 							force = force.add(linkForce);
 						} else {
 							// Keep unlinked nodes from getting too close
-							let linkVector = module.coords[otherNode.name].subtract(module.coords[node.name]);
+							let linkVector = otherNode.coords.subtract(node.coords);
 							if (linkVector.mod() < minDistance) {
 								force = force.add(linkVector.scale(-1));
 							}
@@ -105,14 +106,14 @@ define(
 						force = force.normalise().scale(maxForce);
 					}
 
-					module.coords[node.name] = module.coords[node.name].add(force.scale(dt));
+					node.coords = node.coords.add(force.scale(dt));
 				}
 			},
 
 			drawGraph: function () {
 				var ctx = module.ctx;
 
-				ctx.clearRect(0, 0, module.canvas.width, module.canvas.height);
+				ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
 				ctx.strokeStyle = '#000';
 				ctx.lineWidth = 2;
@@ -138,10 +139,7 @@ define(
 							ctx.strokeStyle = 'rgb(' + (255 - colourStrength) + ', ' + colourStrength + ', 0)';
 						}
 
-						ctx.beginPath();
-						ctx.moveTo(module.coords[node.name].x, module.coords[node.name].y);
-						ctx.lineTo(module.coords[link.getOtherNode(node).name].x, module.coords[link.getOtherNode(node).name].y);
-						ctx.stroke();
+						link.draw(ctx);
 
 						drawnLinks.push(link);
 					}
@@ -159,14 +157,11 @@ define(
 						ctx.strokeStyle = '#0f0';
 					}
 
-					ctx.beginPath();
-					ctx.arc(module.coords[node.name].x, module.coords[node.name].y, r, 0, Math.PI*2);
-					ctx.stroke();
-					ctx.fill();
+					node.draw(ctx);
 
 					// Draw node names
 					ctx.fillStyle = '#000';
-					// ctx.fillText(node.name, module.coords[node.name].x, module.coords[node.name].y+4, r*2);
+					// ctx.fillText(node.name, node.x, node.y+4, r*2);
 				}
 			},
 
@@ -179,18 +174,18 @@ define(
 				for (let i = 0; i < module.nodes.length; i++) {
 					let node = module.nodes[i];
 
-					if (module.coords[node.name].subtract(pos).mod() < r) {
+					if (node.coords.subtract(pos).mod() < r) {
 						return node;
 					}
 				}
 			},
 
 			initEvents: function () {
-				module.canvas.addEventListener('contextmenu', module.preventDefault);
-				module.canvas.addEventListener('mousedown', module.processMouseDown);
-				module.canvas.addEventListener('mousemove', module.processMouseMove);
-				module.canvas.addEventListener('mouseup', module.processMouseUp);
-				module.canvas.addEventListener('mouseout', module.processMouseUp);
+				module.ctx.canvas.addEventListener('contextmenu', module.preventDefault);
+				module.ctx.canvas.addEventListener('mousedown', module.processMouseDown);
+				module.ctx.canvas.addEventListener('mousemove', module.processMouseMove);
+				module.ctx.canvas.addEventListener('mouseup', module.processMouseUp);
+				module.ctx.canvas.addEventListener('mouseout', module.processMouseUp);
 			},
 
 			preventDefault: function (e) {e.preventDefault();},
@@ -235,14 +230,14 @@ define(
 						var pos = new Vector(e.layerX, e.layerY);
 						module.mouseDownPos = pos;
 
-						module.coords[module.selectedNode.name] = pos;
+						module.selectedNode.coords = pos;
 					}
 				}
 
 				// Highlight nearby links
 				module.selectedLinks = [];
 				var links = [];
-				var mouseThreshold = 10;
+				var mouseThreshold = r;
 				// Collect links
 				for (let i = 0; i < module.nodes.length; i++) {
 					let node = module.nodes[i];
@@ -258,13 +253,21 @@ define(
 				for (let i = 0; i < links.length; i++) {
 					let link = links[i];
 
-					let coordsA = module.coords[link.nodeA.name];
-					let coordsB = module.coords[link.nodeB.name];
+					let coordsA = link.nodeA.coords;
+					let coordsB = link.nodeB.coords;
 
 					let line = new Line(coordsA, coordsB.subtract(coordsA));
+					let closestPoint = line.getClosestPoint(pos);
 
-					if (line.getDistanceToLine(pos) < mouseThreshold) {
-						module.selectedLinks.push(link);
+					if (closestPoint.subtract(pos).mod() < mouseThreshold) {
+						// Mouse near line
+						let linkLength = coordsA.subtract(coordsB).mod();
+						let distA = closestPoint.subtract(coordsA).mod();
+						let distB = closestPoint.subtract(coordsB).mod();
+						if (distA < (linkLength+mouseThreshold) && distB < (linkLength+mouseThreshold)) {
+							// Mouse within correct segment of line
+							module.selectedLinks.push(link);
+						}
 					}
 				}
 			},
@@ -280,7 +283,14 @@ define(
 							var mouseDownDuration = now - module.mouseDownTime;
 
 							if ((mouseDownDuration < clickThreshold) && module.selectedNode) {
-								module.addNode(module.selectedNode, {name: module.nodes.length}, pos.x, pos.y);
+								module.addNode(
+									{
+										r: r,
+										x: pos.x,
+										y: pos.y
+									},
+									module.selectedNode
+								);
 							}
 						}
 
@@ -312,5 +322,13 @@ define(
 		};
 
 		module.init();
+		window.saveGraph = function () {
+			console.log(JSON.stringify(module.graph.save()));
+		};
+		window.loadGraph = function (savedGraph) {
+			module.graph.load(JSON.parse(savedGraph));
+			module.nodes = module.graph.getNodeList();
+		};
+		module.initGraph(5);
 	}
 );

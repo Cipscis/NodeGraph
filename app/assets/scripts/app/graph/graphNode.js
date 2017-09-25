@@ -1,13 +1,62 @@
 define(
-	['graph/link'],
+	[
+		'graph/link',
 
-	function (Link) {
+		'vector/vector'
+	],
+
+	function (Link, Vector) {
+
+		var id = 0;
+
+		var defaults = {
+			name: function () {
+				return id;
+			},
+			id: function () {
+				return id;
+			},
+			r: 5
+		};
 
 		var Node = function (options) {
-			this.name = options.name;
+			options = options || {};
 
+			for (var prop in defaults) {
+				if (prop in options) {
+					this[prop] = options[prop];
+				} else {
+					if (defaults[prop] instanceof Function) {
+						this[prop] = defaults[prop]();
+					} else {
+						this[prop] = defaults[prop];
+					}
+				}
+			}
+
+			this.coords = new Vector(options.x || 0, options.y || 0);
 			this.links = [];
+
+			id++;
 		};
+
+		Object.defineProperty(Node.prototype, 'x', {
+			get: function () {
+				return this.coords.x;
+			},
+			set: function (x) {
+				this.coords.x = x;
+			}
+		});
+
+		Object.defineProperty(Node.prototype, 'y', {
+			get: function () {
+				return this.coords.y;
+			},
+			set: function (y) {
+				this.coords.y = y;
+			}
+		});
 
 		Node.prototype.getLink = function (node) {
 			if (!(node instanceof Node)) {
@@ -70,6 +119,13 @@ define(
 				this.links.splice(this.links.indexOf(link), 1);
 				node.links.splice(this.links.indexOf(link), 1);
 			}
+		};
+
+		Node.prototype.draw = function (ctx) {
+			ctx.beginPath();
+			ctx.arc(this.x, this.y, this.r, 0, Math.PI*2);
+			ctx.stroke();
+			ctx.fill();
 		};
 
 		return Node;

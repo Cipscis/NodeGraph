@@ -9,9 +9,12 @@ define(
 			this.root = rootNode;
 		};
 
-		Graph.prototype.addNode = function (anchor, options) {
+		Graph.prototype.addNode = function (options, anchor) {
 			var node = new Node(options);
-			anchor.link(node);
+
+			if (anchor) {
+				anchor.link(node);
+			}
 
 			return node;
 		};
@@ -45,8 +48,24 @@ define(
 			return nodeList;
 		};
 
+		Graph.prototype.getNodeById = function (id) {
+			var nodes = this.getNodeList(),
+				i, node;
+
+			for (i = 0; i < nodes.length; i++) {
+				node = nodes[i];
+
+				if (node.id === id) {
+					return node;
+				}
+			}
+
+			console.warn('Graph.prototype.getNodeById found no node with id ', id);
+		};
+
 		Graph.prototype.getPath = function (nodeA, nodeB) {
 			// Currently using Djikstra
+			// Not sure if there's a suitable heuristic for upgrading to A*
 
 			var checkedNodes = [];
 			var frontier = [nodeA];
@@ -102,6 +121,81 @@ define(
 			path = path.reverse();
 
 			return path;
+		};
+
+		Graph.prototype.save = function () {
+			// Save a graph in a format that can be exported to JSON
+
+			var savedGraph = [];
+			var savedNode;
+
+			var nodes = this.getNodeList();
+			var i, node;
+			var j, link;
+
+			// Step through nodes, and create object that can be used
+			// to recreate them when passed as options
+			for (i = 0; i < nodes.length; i++) {
+				node = nodes[i];
+				savedNode = {
+					name: node.name,
+					id: node.id,
+					r: node.r,
+					x: node.x,
+					y: node.y,
+					links: []
+				};
+
+				for (j = 0; j < node.links.length; j++) {
+					link = node.links[j];
+
+					savedNode.links.push({
+						cost: link.cost,
+						id: link.getOtherNode(node).id
+					});
+				}
+
+				savedGraph.push(savedNode);
+			}
+
+			return savedGraph;
+		};
+
+		Graph.prototype.load = function (savedGraph) {
+			// Load a graph from an object that can be imported from JSON
+
+			var savedNode;
+			var i, node;
+			var j, savedLink;
+			var linkedNode;
+
+			// Start overwriting this graph with new root node
+			Graph.call(this, savedGraph[0]);
+
+			// Add nodes sequentially
+			// Because of how the node tree is traversed, each node's
+			// first linked node should be loaded before it and therefore
+			// available as an anchor to attach it to the graph
+			for (i = 1; i < savedGraph.length; i++) {
+				savedNode = savedGraph[i];
+
+				this.addNode(savedNode, this.getNodeById(savedNode.links[0].id));
+			}
+
+			// Loop through nodes again and add any missing links
+			for (i = 0; i < savedGraph.length; i++) {
+				savedNode = savedGraph[i];
+				node = this.getNodeById(savedNode.id);
+
+				for (j = 1; j < node.links.length; j++) {
+					savedLink = savedNode.links[j];
+					linkedNode = this.getNodeById(savedLink.id);
+
+					if (!node.getLink(linkedNode)) {
+						node.link(linkedNode);
+					}
+				}
+			}
 		};
 
 		return Graph;

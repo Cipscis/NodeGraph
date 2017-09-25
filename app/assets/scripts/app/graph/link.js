@@ -25,6 +25,13 @@ define(
 			}
 		};
 
+		Link.prototype.draw = function (ctx) {
+			ctx.beginPath();
+			ctx.moveTo(this.nodeA.x, this.nodeA.y);
+			ctx.lineTo(this.nodeB.x, this.nodeB.y);
+			ctx.stroke();
+		};
+
 		return Link;
 
 	}
