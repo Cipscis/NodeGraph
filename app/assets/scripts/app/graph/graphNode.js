@@ -117,7 +117,7 @@ define(
 				return;
 			} else {
 				this.links.splice(this.links.indexOf(link), 1);
-				node.links.splice(this.links.indexOf(link), 1);
+				node.links.splice(node.links.indexOf(link), 1);
 			}
 		};
 

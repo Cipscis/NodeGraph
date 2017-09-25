@@ -335,7 +335,6 @@ define(
 							break;
 						case 'unlink':
 							if (module.selectedNode && clickedNode && module.selectedNode !== clickedNode) {
-								console.log('Unlink', module.selectedNode.id, clickedNode.id);
 								module.selectedNode.unlink(clickedNode);
 								module.nodes = module.graph.getNodeList();
 							}
