@@ -58,9 +58,26 @@ define(
 				}
 
 				var node = module.graph.addNode(options, anchor);
-				module.nodes.push(node);
+				// Refresh list of nodes
+
+				module.nodes = module.graph.getNodeList();
 
 				return node;
+			},
+
+			removeNode: function (node) {
+				var i, link;
+
+				console.log('Remove', node);
+				for (i = 0; i < node.links.length; i++) {
+					link = node.links[i];
+
+					console.log(link, link.getOtherNode(node));
+					node.unlink(link.getOtherNode(node));
+				}
+
+				// Refresh list of nodes
+				module.nodes = module.graph.getNodeList();
 			},
 
 			updateNodeCoords: function (dt) {
@@ -136,7 +153,7 @@ define(
 
 						if (module.selectedLinks.indexOf(link) !== -1) {
 							let colourStrength = Math.floor(255 * (1 - (module.selectedLinks.indexOf(link) / module.selectedLinks.length)));
-							ctx.strokeStyle = 'rgb(' + (255 - colourStrength) + ', ' + colourStrength + ', 0)';
+							ctx.strokeStyle = 'rgb(0, 255, 0)';
 						}
 
 						link.draw(ctx);
@@ -150,7 +167,11 @@ define(
 					let node = module.nodes[i];
 
 					// Draw nodes
-					ctx.strokeStyle = '#000';
+					if (node === module.graph.getRoot()) {
+						ctx.strokeStyle = '#f00';
+					} else {
+						ctx.strokeStyle = '#000';
+					}
 					ctx.fillStyle = '#fff';
 
 					if (node === module.selectedNode) {
@@ -161,12 +182,11 @@ define(
 
 					// Draw node names
 					ctx.fillStyle = '#000';
-					// ctx.fillText(node.name, node.x, node.y+4, r*2);
+					ctx.fillText(node.name, node.x, node.y+4, r*2);
 				}
 			},
 
 			updateGraph: function (dt) {
-				module.updateNodeCoords(dt);
 				module.drawGraph();
 			},
 
@@ -186,6 +206,9 @@ define(
 				module.ctx.canvas.addEventListener('mousemove', module.processMouseMove);
 				module.ctx.canvas.addEventListener('mouseup', module.processMouseUp);
 				module.ctx.canvas.addEventListener('mouseout', module.processMouseUp);
+
+				document.getElementsByClassName('js-save')[0].addEventListener('click', module.processSave);
+				document.getElementsByClassName('js-load')[0].addEventListener('click', module.processLoad);
 			},
 
 			preventDefault: function (e) {e.preventDefault();},
@@ -195,25 +218,9 @@ define(
 				var clickedNode = module.getNodeAtPos(pos);
 
 				switch (e.which) {
-					case 1: // Left click
+					case 1: // Left click - record mouse press
 						module.mouseDownPos = pos;
 						module.mouseDownTime = new Date();
-						if (clickedNode && clickedNode !== module.selectedNode) {
-							module.selectedNode = clickedNode;
-							module.selectedLinks = [];
-						}
-						break;
-					case 3: // Right click
-						if (clickedNode) {
-							if (module.selectedNode) {
-								let path = module.graph.getPath(module.selectedNode, clickedNode);
-
-								module.selectedLinks = [];
-								for (let i = 1; i < path.length; i++) {
-									module.selectedLinks.push(path[i].getLink(path[i-1]));
-								}
-							}
-						}
 						break;
 				}
 			},
@@ -221,7 +228,7 @@ define(
 			processMouseMove: function (e) {
 				var pos = new Vector(e.layerX, e.layerY);
 
-				// If a node is selected, move it
+				// If a node is selected and left click is held down, move it
 				if (module.mouseDownPos && module.selectedNode) {
 					var now = new Date();
 					var mouseDownDuration = now - module.mouseDownTime;
@@ -278,11 +285,34 @@ define(
 
 				switch (e.which) {
 					case 1: // Left click
-						if (!clickedNode) {
-							var now = new Date();
-							var mouseDownDuration = now - module.mouseDownTime;
+						var now = new Date();
+						var mouseDownDuration = now - module.mouseDownTime;
 
-							if ((mouseDownDuration < clickThreshold) && module.selectedNode) {
+						if ((mouseDownDuration < clickThreshold)) {
+							module.processClickAction(clickedNode, pos);
+						}
+
+						module.mouseDownPos = null;
+						module.mouseDownTime = null;
+						break;
+				}
+			},
+
+			processClickAction: function (clickedNode, pos) {
+				var action = document.querySelector('[name="control"]:checked');
+				if (action) {
+					switch (action.value) {
+						case 'select':
+							if (clickedNode) {
+								if (clickedNode !== module.selectedNode) {
+									module.selectedNode = clickedNode;
+								}
+							} else {
+								module.selectedNode = null;
+							}
+							break;
+						case 'add':
+							if (module.selectedNode && !clickedNode) {
 								module.addNode(
 									{
 										r: r,
@@ -292,12 +322,37 @@ define(
 									module.selectedNode
 								);
 							}
-						}
-
-						module.mouseDownPos = null;
-						module.mouseDownTime = null;
-						break;
+							break;
+						case 'remove':
+							if (clickedNode) {
+								module.removeNode(clickedNode);
+							}
+							break;
+						case 'link':
+							if (module.selectedNode && clickedNode && module.selectedNode !== clickedNode) {
+								module.selectedNode.link(clickedNode);
+							}
+							break;
+						case 'unlink':
+							if (module.selectedNode && clickedNode && module.selectedNode !== clickedNode) {
+								console.log('Unlink', module.selectedNode.id, clickedNode.id);
+								module.selectedNode.unlink(clickedNode);
+								module.nodes = module.graph.getNodeList();
+							}
+							break;
+					}
 				}
+			},
+
+			processSave: function () {
+				localStorage.setItem('graph', module.graph.save());
+			},
+
+			processLoad: function () {
+				var graphData = localStorage.getItem('graph');
+
+				module.graph.load(graphData);
+				module.nodes = module.graph.getNodeList();
 			},
 
 			start: function (callback, maxDt, inactiveTimeout) {
@@ -322,13 +377,5 @@ define(
 		};
 
 		module.init();
-		window.saveGraph = function () {
-			console.log(JSON.stringify(module.graph.save()));
-		};
-		window.loadGraph = function (savedGraph) {
-			module.graph.load(JSON.parse(savedGraph));
-			module.nodes = module.graph.getNodeList();
-		};
-		module.initGraph(5);
 	}
 );

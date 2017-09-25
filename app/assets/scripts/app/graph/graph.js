@@ -158,7 +158,7 @@ define(
 				savedGraph.push(savedNode);
 			}
 
-			return savedGraph;
+			return JSON.stringify(savedGraph);
 		};
 
 		Graph.prototype.load = function (savedGraph) {
@@ -168,6 +168,10 @@ define(
 			var i, node;
 			var j, savedLink;
 			var linkedNode;
+
+			if (typeof savedGraph === 'string') {
+				savedGraph = JSON.parse(savedGraph);
+			}
 
 			// Start overwriting this graph with new root node
 			Graph.call(this, savedGraph[0]);
@@ -187,7 +191,7 @@ define(
 				savedNode = savedGraph[i];
 				node = this.getNodeById(savedNode.id);
 
-				for (j = 1; j < node.links.length; j++) {
+				for (j = 1; j < savedNode.links.length; j++) {
 					savedLink = savedNode.links[j];
 					linkedNode = this.getNodeById(savedLink.id);
 
