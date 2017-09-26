@@ -144,7 +144,8 @@ define(
 					r: node.r,
 					x: node.x,
 					y: node.y,
-					links: []
+					links: [],
+					data: node.data
 				};
 
 				for (j = 0; j < node.links.length; j++) {

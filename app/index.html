@@ -10,20 +10,29 @@
 </head>
 <body>
 	<script type="text/javascript">
-		require(['graph']);
+		require(['graphController']);
 	</script>
 
-	<canvas width="600" height="500" id="graph-canvas" style="border: 1px solid black;"></canvas>
+	<div class="grid grid-v">
+		<div class="grid__item width-3-4">
+			<canvas width="600" height="500" id="graph-canvas" style="border: 1px solid black;"></canvas>
+		</div>
+		<div class="grid__item width-1-4">
+			<label>Name: <input type="text" class="js-node-name" value="" disabled /></label>
+		</div>
 
-	<ul>
-		<li><label><input type="radio" name="control" value="select" />Select node</label></li>
-		<li><label><input type="radio" name="control" value="add" />Add node</label></li>
-		<li><label><input type="radio" name="control" value="remove" />Remove node</label></li>
-		<li><label><input type="radio" name="control" value="link" />Link node</label></li>
-		<li><label><input type="radio" name="control" value="unlink" />Unlink node</label></li>
-	</ul>
+		<div class="grid__item width-1">
+			<ul>
+				<li><label><input type="radio" name="control" value="select" />Select node</label></li>
+				<li><label><input type="radio" name="control" value="add" />Add node</label></li>
+				<li><label><input type="radio" name="control" value="remove" />Remove node</label></li>
+				<li><label><input type="radio" name="control" value="link" />Link node</label></li>
+				<li><label><input type="radio" name="control" value="unlink" />Unlink node</label></li>
+			</ul>
 
-	<button class="js-save">Save</button>
-	<button class="js-load">Load</button>
+			<button class="js-save">Save</button>
+			<button class="js-load">Load</button>
+		</div>
+	</div>
 </body>
 </html>

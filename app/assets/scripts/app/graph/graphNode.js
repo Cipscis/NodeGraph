@@ -10,13 +10,10 @@ define(
 		var id = 0;
 
 		var defaults = {
-			name: function () {
-				return id;
-			},
-			id: function () {
-				return id;
-			},
-			r: 5
+			name: function () { return id; },
+			id: function () { return id; },
+			r: 5,
+			data: function () { return {}; }
 		};
 
 		var Node = function (options) {
