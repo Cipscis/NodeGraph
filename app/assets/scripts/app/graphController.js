@@ -13,36 +13,36 @@ define(
 		const minDistance = r*2.5;
 		const borderThreshold = 100;
 
-		const clickThreshold = 100; // ms
+		const clickThreshold = 200; // ms
 
-		var module = {
+		var GraphController = {
 			init: function () {
 				var canvas = document.getElementById('graph-canvas');
-				module.ctx = canvas.getContext('2d');
+				GraphController.ctx = canvas.getContext('2d');
 
-				module.initGraph(5);
+				GraphController.initGraph(5);
 
 				// State properties
-				module.selectedNode = null;
-				module.selectedLinks = [];
-				module.mouseDownPos = null;
-				module.mouseDownTime = null;
+				GraphController.selectedNode = null;
+				GraphController.selectedLinks = [];
+				GraphController.mouseDownPos = null;
+				GraphController.mouseDownTime = null;
 
-				module.initEvents();
-				module.start(module.updateGraph, 0.1, 1);
+				GraphController.initEvents();
+				GraphController.start(GraphController.updateGraph, 0.1, 1);
 			},
 
 			initGraph: function (n) {
-				module.graph = new Graph({
+				GraphController.graph = new Graph({
 					name: 'Root'
 				});
-				module.nodes = [module.graph.getRoot()];
-				module.nodes[0].coords = new Vector(module.ctx.canvas.width/2, module.ctx.canvas.height/2);
+				GraphController.nodes = [GraphController.graph.getRoot()];
+				GraphController.nodes[0].coords = new Vector(GraphController.ctx.canvas.width/2, GraphController.ctx.canvas.height/2);
 
 				for (let i = 1; i < n; i++) {
 					// Add a new node, linked to a random other node
-					anchor = module.nodes[Math.floor(Math.random()*module.nodes.length)];
-					module.addNode({r: r}, anchor);
+					anchor = GraphController.nodes[Math.floor(Math.random()*GraphController.nodes.length)];
+					GraphController.addNode({r: r}, anchor);
 				}
 			},
 
@@ -50,17 +50,17 @@ define(
 				options = options || {};
 
 				if (typeof options.x === 'undefined') {
-					options.x = Math.random()*(module.ctx.canvas.width - borderThreshold*2) + borderThreshold;
+					options.x = Math.random()*(GraphController.ctx.canvas.width - borderThreshold*2) + borderThreshold;
 				}
 
 				if (typeof options.y === 'undefined') {
-					options.y = Math.random()*(module.ctx.canvas.height - borderThreshold*2) + borderThreshold;
+					options.y = Math.random()*(GraphController.ctx.canvas.height - borderThreshold*2) + borderThreshold;
 				}
 
-				var node = module.graph.addNode(options, anchor);
+				var node = GraphController.graph.addNode(options, anchor);
 				// Refresh list of nodes
 
-				module.nodes = module.graph.getNodeList();
+				GraphController.nodes = GraphController.graph.getNodeList();
 
 				return node;
 			},
@@ -68,27 +68,27 @@ define(
 			removeNode: function (node) {
 				var i, link;
 
-				for (i = 0; i < node.links.length; i++) {
+				for (i = node.links.length-1; i >= 0; i--) {
 					link = node.links[i];
 
 					node.unlink(link.getOtherNode(node));
 				}
 
 				// Refresh list of nodes
-				module.nodes = module.graph.getNodeList();
+				GraphController.nodes = GraphController.graph.getNodeList();
 			},
 
 			updateNodeCoords: function (dt) {
-				for (let i = 0; i < module.nodes.length; i++) {
-					let node = module.nodes[i];
+				for (let i = 0; i < GraphController.nodes.length; i++) {
+					let node = GraphController.nodes[i];
 					let force = new Vector(0, 0);
 
-					if (module.mouseDownPos && node === module.selectedNode) {
+					if (GraphController.mouseDownPos && node === GraphController.selectedNode) {
 						continue;
 					}
 
-					for (let j = 0; j < module.nodes.length; j++) {
-						let otherNode = module.nodes[j];
+					for (let j = 0; j < GraphController.nodes.length; j++) {
+						let otherNode = GraphController.nodes[j];
 						if (otherNode === node) {
 							continue;
 						}
@@ -126,7 +126,7 @@ define(
 			},
 
 			drawGraph: function () {
-				var ctx = module.ctx;
+				var ctx = GraphController.ctx;
 
 				ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
@@ -137,8 +137,8 @@ define(
 
 				// First loop through nodes, draw links
 				var drawnLinks = [];
-				for (let i = 0; i < module.nodes.length; i++) {
-					let node = module.nodes[i];
+				for (let i = 0; i < GraphController.nodes.length; i++) {
+					let node = GraphController.nodes[i];
 
 					for (let j = 0; j < node.links.length; j++) {
 						let link = node.links[j];
@@ -149,8 +149,8 @@ define(
 
 						ctx.strokeStyle = '#000';
 
-						if (module.selectedLinks.indexOf(link) !== -1) {
-							let colourStrength = Math.floor(255 * (1 - (module.selectedLinks.indexOf(link) / module.selectedLinks.length)));
+						if (GraphController.selectedLinks.indexOf(link) !== -1) {
+							let colourStrength = Math.floor(255 * (1 - (GraphController.selectedLinks.indexOf(link) / GraphController.selectedLinks.length)));
 							ctx.strokeStyle = 'rgb(0, 255, 0)';
 						}
 
@@ -161,18 +161,18 @@ define(
 				}
 
 				// Second loop through nodes, draw nodes
-				for (let i = 0; i < module.nodes.length; i++) {
-					let node = module.nodes[i];
+				for (let i = 0; i < GraphController.nodes.length; i++) {
+					let node = GraphController.nodes[i];
 
 					// Draw nodes
-					if (node === module.graph.getRoot()) {
+					if (node === GraphController.graph.getRoot()) {
 						ctx.strokeStyle = '#f00';
 					} else {
 						ctx.strokeStyle = '#000';
 					}
 					ctx.fillStyle = '#fff';
 
-					if (node === module.selectedNode) {
+					if (node === GraphController.selectedNode) {
 						ctx.strokeStyle = '#0f0';
 					}
 
@@ -185,12 +185,12 @@ define(
 			},
 
 			updateGraph: function (dt) {
-				module.drawGraph();
+				GraphController.drawGraph();
 			},
 
 			getNodeAtPos: function (pos) {
-				for (let i = 0; i < module.nodes.length; i++) {
-					let node = module.nodes[i];
+				for (let i = 0; i < GraphController.nodes.length; i++) {
+					let node = GraphController.nodes[i];
 
 					if (node.coords.subtract(pos).mod() < r) {
 						return node;
@@ -199,26 +199,29 @@ define(
 			},
 
 			initEvents: function () {
-				module.ctx.canvas.addEventListener('contextmenu', module.preventDefault);
-				module.ctx.canvas.addEventListener('mousedown', module.processMouseDown);
-				module.ctx.canvas.addEventListener('mousemove', module.processMouseMove);
-				module.ctx.canvas.addEventListener('mouseup', module.processMouseUp);
-				module.ctx.canvas.addEventListener('mouseout', module.processMouseUp);
+				GraphController.ctx.canvas.addEventListener('contextmenu', GraphController.preventDefault);
 
-				document.getElementsByClassName('js-save')[0].addEventListener('click', module.processSave);
-				document.getElementsByClassName('js-load')[0].addEventListener('click', module.processLoad);
+				GraphController.ctx.canvas.addEventListener('mousedown', GraphController.processMouseDown);
+				GraphController.ctx.canvas.addEventListener('mousemove', GraphController.processMouseMove);
+				GraphController.ctx.canvas.addEventListener('mouseup', GraphController.processMouseUp);
+				GraphController.ctx.canvas.addEventListener('mouseout', GraphController.processMouseUp);
+
+				document.querySelector('.js-save').addEventListener('click', GraphController.processSave);
+				document.querySelector('.js-load').addEventListener('click', GraphController.processLoad);
+
+				document.querySelector('.js-node-name').addEventListener('change', GraphController.processNameChange);
 			},
 
 			preventDefault: function (e) {e.preventDefault();},
 
 			processMouseDown: function (e) {
 				var pos = new Vector(e.layerX, e.layerY);
-				var clickedNode = module.getNodeAtPos(pos);
+				var clickedNode = GraphController.getNodeAtPos(pos);
 
 				switch (e.which) {
 					case 1: // Left click - record mouse press
-						module.mouseDownPos = pos;
-						module.mouseDownTime = new Date();
+						GraphController.mouseDownPos = pos;
+						GraphController.mouseDownTime = new Date();
 						break;
 				}
 			},
@@ -227,25 +230,25 @@ define(
 				var pos = new Vector(e.layerX, e.layerY);
 
 				// If a node is selected and left click is held down, move it
-				if (module.mouseDownPos && module.selectedNode) {
+				if (GraphController.mouseDownPos && GraphController.selectedNode) {
 					var now = new Date();
-					var mouseDownDuration = now - module.mouseDownTime;
+					var mouseDownDuration = now - GraphController.mouseDownTime;
 					if (mouseDownDuration > clickThreshold) {
 
-						var pos = new Vector(e.layerX, e.layerY);
-						module.mouseDownPos = pos;
+						pos = new Vector(e.layerX, e.layerY);
+						GraphController.mouseDownPos = pos;
 
-						module.selectedNode.coords = pos;
+						GraphController.selectedNode.coords = pos;
 					}
 				}
 
 				// Highlight nearby links
-				module.selectedLinks = [];
+				GraphController.selectedLinks = [];
 				var links = [];
 				var mouseThreshold = r;
 				// Collect links
-				for (let i = 0; i < module.nodes.length; i++) {
-					let node = module.nodes[i];
+				for (let i = 0; i < GraphController.nodes.length; i++) {
+					let node = GraphController.nodes[i];
 					for (let j = 0; j < node.links.length; j++) {
 						let link = node.links[j];
 						if (links.indexOf(link) === -1) {
@@ -271,7 +274,7 @@ define(
 						let distB = closestPoint.subtract(coordsB).mod();
 						if (distA < (linkLength+mouseThreshold) && distB < (linkLength+mouseThreshold)) {
 							// Mouse within correct segment of line
-							module.selectedLinks.push(link);
+							GraphController.selectedLinks.push(link);
 						}
 					}
 				}
@@ -279,19 +282,19 @@ define(
 
 			processMouseUp: function (e) {
 				var pos = new Vector(e.layerX, e.layerY);
-				var clickedNode = module.getNodeAtPos(pos);
+				var clickedNode = GraphController.getNodeAtPos(pos);
 
 				switch (e.which) {
 					case 1: // Left click
 						var now = new Date();
-						var mouseDownDuration = now - module.mouseDownTime;
+						var mouseDownDuration = now - GraphController.mouseDownTime;
 
 						if ((mouseDownDuration < clickThreshold)) {
-							module.processClickAction(clickedNode, pos);
+							GraphController.processClickAction(clickedNode, pos);
 						}
 
-						module.mouseDownPos = null;
-						module.mouseDownTime = null;
+						GraphController.mouseDownPos = null;
+						GraphController.mouseDownTime = null;
 						break;
 				}
 			},
@@ -301,40 +304,48 @@ define(
 				if (action) {
 					switch (action.value) {
 						case 'select':
+							let $nodeName = document.querySelector('.js-node-name');
+
 							if (clickedNode) {
-								if (clickedNode !== module.selectedNode) {
-									module.selectedNode = clickedNode;
+								if (clickedNode !== GraphController.selectedNode) {
+									GraphController.selectedNode = clickedNode;
+
+									$nodeName.value = clickedNode.data.name || '';
+									$nodeName.disabled = false;
 								}
 							} else {
-								module.selectedNode = null;
+								GraphController.selectedNode = null;
+
+								$nodeName.value = '';
+								$nodeName.disabled = true;
 							}
 							break;
 						case 'add':
-							if (module.selectedNode && !clickedNode) {
-								module.addNode(
+							if (GraphController.selectedNode && !clickedNode) {
+								GraphController.addNode(
 									{
 										r: r,
 										x: pos.x,
 										y: pos.y
 									},
-									module.selectedNode
+									GraphController.selectedNode
 								);
 							}
 							break;
 						case 'remove':
 							if (clickedNode) {
-								module.removeNode(clickedNode);
+								GraphController.removeNode(clickedNode);
 							}
 							break;
 						case 'link':
-							if (module.selectedNode && clickedNode && module.selectedNode !== clickedNode) {
-								module.selectedNode.link(clickedNode);
+							if (GraphController.selectedNode && clickedNode && GraphController.selectedNode !== clickedNode) {
+								GraphController.selectedNode.link(clickedNode);
 							}
 							break;
 						case 'unlink':
-							if (module.selectedNode && clickedNode && module.selectedNode !== clickedNode) {
-								module.selectedNode.unlink(clickedNode);
-								module.nodes = module.graph.getNodeList();
+							if (GraphController.selectedNode && clickedNode && GraphController.selectedNode !== clickedNode) {
+								GraphController.selectedNode.unlink(clickedNode);
+								GraphController.nodes = GraphController.graph.getNodeList();
 							}
 							break;
 					}
@@ -342,14 +353,20 @@ define(
 			},
 
 			processSave: function () {
-				localStorage.setItem('graph', module.graph.save());
+				localStorage.setItem('graph', GraphController.graph.save());
 			},
 
 			processLoad: function () {
 				var graphData = localStorage.getItem('graph');
 
-				module.graph.load(graphData);
-				module.nodes = module.graph.getNodeList();
+				GraphController.graph.load(graphData);
+				GraphController.nodes = GraphController.graph.getNodeList();
+			},
+
+			processNameChange: function (e) {
+				var $name = this;
+
+				GraphController.selectedNode.data.name = this.value;
 			},
 
 			start: function (callback, maxDt, inactiveTimeout) {
@@ -373,6 +390,6 @@ define(
 			}
 		};
 
-		module.init();
+		GraphController.init();
 	}
 );
